@@ -131,11 +131,17 @@
          * @param {String} path
          */
         pager.navigate = function (path) {
+            pager.getHref().navigate(path);
+            // TODO: The navigte method should be pushed onto the HrefImpl reference.
+            /*
             if (pager.useHTML5history) {
-                pager.Href5.history.pushState(null, null, path);
+                // pager.Href5.history.pushState(null, null, path);
+                pager.Href5.navigate(path);
             } else {
-                location.hash = path;
+                // location.hash = path;
+                pager.Href.navigate(path);
             }
+            */
         };
 
 
@@ -486,11 +492,17 @@
         };
 
         var absolutePathToRealPath = function (path) {
+            return pager.getHref().absolutePathToRealPath(path);
+            // TODO: Delegate to the HrefImpl
+            /*
             if (pager.useHTML5history) {
-                return $('base').attr('href') + path;
+                // return $('base').attr('href') + path;
+                return pager.Href5.absolutePathToRealPath(path);
             } else {
-                return pager.Href.hash + path;
+                // return pager.Href.hash + path;
+                return pager.Href.absolutePathToRealPath(path);
             }
+            */
         };
 
         /**
@@ -1333,6 +1345,14 @@
 
         pager.Href.hash = '#';
 
+        pager.Href.navigate = function (path) {
+            location.hash = path;
+        };
+
+        pager.Href.absolutePathToRealPath = function (path) {
+            return pager.Href.hash + path;
+        };
+
         hp.bind = function () {
             ko.applyBindingsToNode(this.element, {
                 attr: {
@@ -1353,6 +1373,14 @@
 
         pager.Href5.history = window.History;
 
+        pager.Href5.navigate = function (path) {
+            pager.Href5.history.pushState(null, null, path);
+        };
+
+        pager.Href5.absolutePathToRealPath = function (path) {
+            return $('base').attr('href') + path;
+        };
+
         pager.Href5.prototype.bind = function () {
             var self = this;
             ko.applyBindingsToNode(self.element, {
@@ -1369,9 +1397,17 @@
             });
         };
 
+        pager.getHref = function () {
+            if (pager.HrefImpl) {
+                return pager.HrefImpl;
+            }
+            return pager.useHTML5history ? pager.Href5 : pager.Href;
+        };
+
         ko.bindingHandlers['page-href'] = {
             init: function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
-                var Cls = pager.useHTML5history ? pager.Href5 : pager.Href;
+                // Should delegate to the HrefImpl
+                var Cls = pager.getHref(); //pager.useHTML5history ? pager.Href5 : pager.Href;
                 var href = new Cls(element, valueAccessor, allBindingsAccessor, viewModel, bindingContext);
                 href.init();
                 href.bind();
@@ -1443,11 +1479,26 @@
         pager.fx.slide = pager.fx.jQuerySync($.fn.slideDown, $.fn.slideUp);
         pager.fx.fade = pager.fx.jQuerySync($.fn.fadeIn, $.fn.fadeOut);
 
+
+        /**
+         * Start pager with the custom Href implementation.
+         * @param customHref The custom Href implementation.
+         * @param callback Callback called after initialization.
+         */
+        pager.startCustomHref = function (customHref, callback) {
+            pager.HrefImpl = customHref;
+            if (callback) {
+                callback(pager);
+            }
+        };
+
+
         /**
          *
          * @param {String/Object} options
          */
         pager.startHistoryJs = function (options) {
+            pager.HrefImpl = pager.Href5;
             var id = typeof options === 'string' ? options : null;
             if (id) {
                 pager.Href5.history.pushState(null, null, id);
@@ -1478,6 +1529,9 @@
          * @static
          */
         pager.start = function (options) {
+
+            pager.HrefImpl = pager.Href;
+
             var id = typeof options === 'string' ? options : null;
             if (id) {
                 window.location.hash = pager.Href.hash + id;

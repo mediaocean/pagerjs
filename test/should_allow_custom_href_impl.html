@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Should access URI parameters</title>
+    <script type="text/javascript" src="../lib/jquery-2.0.3.min.js"></script>
+    <script type="text/javascript" src="../lib/underscore-min.js"></script>
+    <script type="text/javascript" src="../lib/knockout-3.0.0.js"></script>
+    <script type="text/javascript" src="../lib/jquery.ba-hashchange.min.js"></script>
+    <script type="text/javascript" src="../pager.js"></script>
+
+    <link rel="stylesheet" href="../lib/qunit.css"/>
+</head>
+<body>
+
+<div id="qunit"></div>
+
+<div data-bind="page: {id: 'test'}">
+    <span id="test">Test</span>
+</div>
+
+<script type="text/javascript">
+
+
+    var viewModel = {
+    };
+
+    pager.extendWithPage(viewModel);
+    ko.applyBindings(viewModel);
+
+    var options = 'test';
+
+
+    var customHref = function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
+        pager.Href.apply(this, arguments);
+    };
+
+    customHref.prototype = new pager.Href();
+
+    customHref.navigate = function (path) {
+        pager.goTo(path);
+    };
+
+    customHref.absolutePathToRealPath = function (path) {
+        return path;
+    };
+
+    customHref.prototype.bind = function () {
+        var self = this;
+        ko.applyBindingsToNode(self.element, {
+            attr: {
+                'href': self.path
+            },
+            click: function () {
+                var path = self.path();
+                if (path === '' || path === '/') {
+                    path = '';
+                }
+                pager.goTo(path);
+            }
+        });
+    };
+
+    pager.startCustomHref(customHref, function () {
+        pager.goTo('test');
+    });
+
+</script>
+
+<script type="text/javascript" src="../lib/qunit-until.js"></script>
+<script type="text/javascript" src="../lib/qunit.js"></script>
+
+<script type="text/javascript">
+
+    asyncTest("Should allow custom href impl", function () {
+
+        until(function () {
+            return $('#test').is(':visible');
+        }, function () {
+            ok(true, "test page is visible");
+            start();
+        });
+
+
+    });
+</script>
+
+
+</body>
+</html>
